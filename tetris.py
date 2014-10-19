@@ -7,6 +7,7 @@ import curses
 
 N = 12
 M = 25
+NCOLORS = 4
 
 class Canvas:
     def __init__(self):
@@ -23,6 +24,14 @@ class Canvas:
         # curses.curs_set(2)
         self.mScreen.nodelay(1)
         self.mScreen.keypad(1)
+        curses.start_color()
+        curses.use_default_colors()
+        curses.init_pair(0, curses.COLOR_BLACK, curses.COLOR_BLACK)
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(4, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(5, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     
     def finish(self):
         if None != self.mScreen:
@@ -43,7 +52,8 @@ class Canvas:
             self.mScreen.addch(M + 1, i + 1, '-')
         for i in xrange(M):
             for j in xrange(N):
-                self.mScreen.addch(i + 1, j + 1, '*' if 0 != self.mBuffer[i][j] else ' ')
+                index = self.mBuffer[i][j]
+                self.mScreen.addch(i + 1, j + 1, '*' if 0 != self.mBuffer[i][j] else ' ', curses.color_pair(index))
         self.mScreen.refresh()
 
     def read(self):
@@ -58,7 +68,9 @@ masksH = [
             [ [0, 1, 1], [1, 1, 0]],
             [ [1, 1, 0], [0, 1, 1]],
             [ [1, 0, 0], [1, 1, 1]],
-            [ [1, 1, 1], [1, 0, 0]]
+            [ [1, 1, 1], [1, 0, 0]],
+            [ [1, 1, 1], [0, 1, 0]],
+            [ [0, 1, 0], [1, 1, 1]],
          ]
 
 masksV = []
@@ -88,6 +100,7 @@ class Scene:
         self.mRot = random.randint(0, 1)
         self.mFX = N/2
         self.mFY = M - len(self.getMask())
+        self.mColor = random.randint(1, 5)
 
     def getMask(self):
         return masks[self.mRot][self.mF]
@@ -99,19 +112,20 @@ class Scene:
         mask = self.getMask()
         for line in xrange(len(mask)):
             for j in xrange(len(mask[line])):
-                if mask[line][j]:
-                    canvas.mBuffer[M - self.mFY - 1 - line][self.mFX + j] = 1
+                if 0 != mask[line][j]:
+                    canvas.mBuffer[M - self.mFY - 1 - line][self.mFX + j] = self.mColor
         canvas.mScreen.addstr(M + 5, 0, str(self.mScore))
 
     def freezeFigure(self):
         mask = self.getMask()
         for line in xrange(len(mask)):
             for j in xrange(len(mask[line])):
-                if mask[line][j]:
-                    self.mBuffer[self.mFY + line][self.mFX + j] = 1
-        for i in xrange(M):
+                if 0 != mask[line][j]:
+                    self.mBuffer[self.mFY + line][self.mFX + j] = self.mColor
+        i = 0
+        while i < M:
             j = 0
-            while j < N and self.mBuffer[i][j] == 1:
+            while j < N and self.mBuffer[i][j] > 0:
                 j += 1
             if j == N:
                 del self.mBuffer[i]
@@ -120,6 +134,8 @@ class Scene:
                     line.append(0)
                 self.mBuffer.append(line)
                 self.mScore += 1
+            else:
+                i += 1
 
     def hit(self):
         mask = self.getMask()
@@ -134,7 +150,7 @@ class Scene:
                             return True
                         if self.mFX + j >= N:
                             return True
-                        if self.mBuffer[self.mFY + line][self.mFX + j] == 1:
+                        if self.mBuffer[self.mFY + line][self.mFX + j] > 0:
                             return True
             return False
         finally:
