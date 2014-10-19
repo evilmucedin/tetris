@@ -129,8 +129,13 @@ class Scene:
         try:
             for line in xrange(len(mask)):
                 for j in xrange(len(mask[line])):
-                    if self.mBuffer[self.mFY + line][self.mFX + j] == 1 and mask[line][j] == 1:
-                        return True
+                    if mask[line][j] == 1:
+                        if self.mFY + line >= M:
+                            return True
+                        if self.mFX + j >= N:
+                            return True
+                        if self.mBuffer[self.mFY + line][self.mFX + j] == 1:
+                            return True
             return False
         finally:
             self.mFY += 1
@@ -143,8 +148,12 @@ class Scene:
                     self.mRot = 1 - self.mRot
         if curses.KEY_LEFT == keyInput:
             self.mFX -= 1
+            if self.hit():
+                self.mFX += 1
         if curses.KEY_RIGHT == keyInput:
             self.mFX += 1
+            if self.hit():
+                self.mFX -= 1
         if curses.KEY_DOWN == keyInput:
             if not self.hit():
                 self.mFY -= 1
